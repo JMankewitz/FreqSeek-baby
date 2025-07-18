@@ -17,7 +17,7 @@ from psychopy import prefs
 # 	print('could not load pyo')
 #import psychtoolbox as ptb
 
-prefs.hardware['audioLib'] = ['pyo']
+prefs.hardware['audioLib'] = ['sounddevice']
 
 from psychopy import sound, core, visual
 

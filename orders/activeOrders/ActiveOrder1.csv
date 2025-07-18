@@ -1,4 +1,5 @@
-trialType,trialID,blockID,leftStim,rightStim,leftStimType,rightStimType,leftLabel,rightLabel,leftAudio,rightAudio,trialDuration,trialStartSilence,trialEndSilence,AG,AGType,AGImage,AGAudio,AGVideo,AGTime,AGgetInput,AGWidth,AGHeight
-activeTest,1,1,A_P,B_C,prototype,boundary,doff,reng,doff,reng,2500,0,0,0,,,,,,,,
-activeTest,2,1,C_A,B_P,boundary,prototype,doff,bosa,doff,bosa,2500,0,0,0,,,,,,,,
-activeTest,3,1,A_B,C_P,boundary,prototype,bosa,reng,bosa,reng,2500,0,0,0,,,,,,,,
+trialType,trialID,blockID,bottomLeftStim,bottomLeftStimType,bottomLeftLabel,topLeftStim,topLeftStimType,topLeftLabel,bottomRightStim,bottomRightStimType,bottomRightLabel,topRightStim,topRightStimType,topRightLabel,trialDuration,trialStartSilence,trialEndSilence,AG,AGType,AGImage,AGAudio,AGVideo,AGTime,AGgetInput,AGWidth,AGHeight
+activeTest,1,1,object1,highfreq,beevo,object2,lowfreq,kita,object3,lowfreq,manu,object4,highfreq,guffy,2500,0,0,0,,,,,,,,
+activeTest,2,1,object2,lowfreq,kita,object4,highfreq,guffy,object1,highfreq,beevo,object3,lowfreq,manu,2500,0,0,0,,,,,,,,
+activeTest,3,1,object3,lowfreq,manu,object1,highfreq,beevo,object4,highfreq,guffy,object2,lowfreq,kita,2500,0,0,0,,,,,,,,
+activeTest,3,1,object4,highfreq,guffy,object3,lowfreq,manu,object2,lowfreq,kita,object1,highfreq,beevo,2500,0,0,0,,,,,,,,

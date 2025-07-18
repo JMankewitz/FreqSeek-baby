@@ -25,3 +25,21 @@ def setAndPresentScreen(display, screen, duration=0):
 		display.show()
 		# relies on pygaze's libtime module
 		libtime.pause(duration)
+
+def psychopy_to_pygaze(psychopy_coord, screen_width=1920, screen_height=1080, y_offset=0, x_offset = 0):
+    """
+    Converts a position from PsychoPy (origin at center) to pygaze (origin at top left)
+    
+    Parameters:
+      psychopy_coord: Tuple (x, y) in PsychoPy coordinates.
+      screen_width: Width of the screen (default 1920).
+      screen_height: Height of the screen (default 1080).
+    
+    Returns:
+      Tuple (x', y') representing the center coordinate for pygaze.
+    """
+    x, y = psychopy_coord
+    # Convert from center origin to top-left origin
+    pyg_x = x + (screen_width / 2) - x_offset
+    pyg_y = (screen_height / 2) - y - y_offset  # Flip y-axis (in psychopy, +y is up; in pygaze, +y is down)
+    return (pyg_x, pyg_y)

@@ -1,4 +1,2 @@
-trialType,trialID,blockID,leftStim,rightStim,leftStimType,rightStimType,leftLabel,rightLabel,leftAudio,rightAudio,trialDuration,trialStartSilence,trialEndSilence,AG,AGType,AGImage,AGAudio,AGVideo,AGTime,AGgetInput,AGWidth,AGHeight
-activeTest,1,1,A_P,B_C,prototype,boundary,doff,reng,doff,reng,2500,0,0,0,,,,,,,,
-activeTest,2,1,C_A,B_P,boundary,prototype,doff,bosa,doff,bosa,2500,0,0,0,,,,,,,,
-activeTest,3,1,A_B,C_P,boundary,prototype,bosa,reng,bosa,reng,2500,0,0,0,,,,,,,,
+trialType,trialID,blockID,bottomLeftStim,bottomLeftStimType,bottomLeftLabel,topLeftStim,topLeftStimType,topLeftLabel,bottomRightStim,bottomRightStimType,bottomRightLabel,topRightStim,topRightStimType,topRightLabel,trialDuration,trialStartSilence,trialEndSilence,AG,AGType,AGImage,AGAudio,AGVideo,AGTime,AGgetInput,AGWidth,AGHeight
+activeTraining,1,1,cookie,training,cookie,shoe,training,shoe,ball,training,ball,apple,training,apple,2500,0,0,0,,,,,,,,

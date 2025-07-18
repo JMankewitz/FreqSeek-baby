@@ -172,13 +172,22 @@ class ExpPresentation(Exp):
 	def __init__(self, experiment):
 		self.experiment = experiment
 		self.lowFreqLabelingBlocks = {}
-		self.fillerLabels = ['Hey_check_that_out', 'Hey_look_at_that', 'Do_you_see_it', 'Can_you_see_it']
+		self.fillerLabels = ['Hey_check_that_out', 'Hey_look_at_that', 
+					   'Do_you_see_it', 'Can_you_see_it']
 		
 		# Define the actual labels for each low-frequency object
 		self.actualLabels = {
 			'kita': 'Its_a_kita',
 			'manu': 'Its_a_manu'
 		}
+
+		self.stimLabels = {
+			'object1': 'beevo',
+			'object2':'kita',
+			'object3':'manu',
+			'object4':'guffy'
+		}
+		self.locations = ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']
 
 	def initializeExperiment(self):
 		
@@ -208,7 +217,7 @@ class ExpPresentation(Exp):
 		self.imageMatrix = loadFiles(self.experiment.imagePath, ['.png', ".jpg", ".jpeg"], 'image', win = self.experiment.win)
 		self.stars = loadFiles(self.experiment.AGPath, ['.jpg'], 'image', self.experiment.win)
 
-		self.locations = ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']
+		
 		self.trigger = 0 # start trigger for eyetracker (0) vs keyboard (1)
 
 		# dimensions MATH ugh
@@ -229,6 +238,15 @@ class ExpPresentation(Exp):
 					'stimleft': (-self.x_length/4, -350),
 					'stimright': (self.x_length/4, -350)
 					}
+		
+		aoi_width = 600
+		aoi_height = 500
+	
+		self.posAOIS = {}
+		for location, position in self.pos.items():
+			pygaze_pos = psychopy_to_pygaze(position, x_offset = aoi_width/2, y_offset = aoi_height/2)
+			print(pygaze_pos)
+			self.posAOIS[location] = aoi.AOI('rectangle', pos=pygaze_pos, size=(aoi_width, aoi_height))
 
 		# Contingent Timing Settings
 		self.firstTriggerThreshold = 150  # (ms) time to accumulate looks before triggering image
@@ -236,12 +254,10 @@ class ExpPresentation(Exp):
 		self.noneThreshold = 1  # (ms) time of look to on-screen but non-trigger AOI before contingent ends - should account for shifts
 
 		self.timeoutTime = 10000  # (ms) 30s, length of trial
-		self.rect_size = (800, 700)
-		self.fam_rect_size = (600, 500)
+		self.rect_size = (500, 500)
+		self.fam_rect_size = (500, 500)
 		self.fam_stim_size = (400, 400)
-		self.stim_size = (500,500)
-		self.aoiLeft = aoi.AOI('rectangle', pos = (0, 190), size = self.rect_size)
-		self.aoiRight = aoi.AOI('rectangle', pos= (1120, 190), size=self.rect_size)
+		self.stim_size = (400,400)
 		self.ISI = 500
 		self.startSilence = 0
 		self.endSilence = 1000
@@ -607,38 +623,62 @@ class ExpPresentation(Exp):
 		csv_header = ["timestamp","eyetrackerLog",  "sampledLook", "avgPOS", "curLook",  "response"]
 		trigger_filename = 'data/' + stage + '/' + 'tracking_data_' + self.experiment.subjVariables['subjCode'] + '.txt'
 
-
 		with open(trigger_filename, "w", newline='') as file:
 			writer = csv.writer(file)
 			writer.writerow(csv_header)
 
 		self.experiment.disp.show()
 
-		leftStimName = curTrial['leftStim']
-		rightStimName = curTrial['rightStim']
-
+		bottomLeftStimName = curTrial['bottomLeftStim']
+		bottomRightStimName = curTrial['bottomRightStim']
+		topLeftStimName = curTrial['topLeftStim']
+		topRightStimName = curTrial['topRightStim']
 		# Find Psychopy Stim from image matrix
-		# Left
-		self.leftStimImage  = self.imageMatrix[leftStimName][0]
-		self.leftStimImage.pos = self.pos['centerLeft']
-		self.leftStimImage.size = self.stim_size
+		# Bottom Left
+		self.bottomLeftStimImage  = self.imageMatrix[bottomLeftStimName][0]
+		self.bottomLeftStimImage.pos = self.pos['bottomLeft']
+		self.bottomLeftStimImage.size = self.stim_size
 
-		# Right
-		self.rightStimImage = self.imageMatrix[rightStimName][0]
-		self.rightStimImage.pos = self.pos['centerRight']
-		self.rightStimImage.size = self.stim_size
-		self.leftRect = visual.Rect(
+		# Top Left
+		self.topLeftStimImage  = self.imageMatrix[topLeftStimName][0]
+		self.topLeftStimImage.pos = self.pos['topLeft']
+		self.topLeftStimImage.size = self.stim_size
+
+		# Bottom Right
+		self.bottomRightStimImage = self.imageMatrix[bottomRightStimName][0]
+		self.bottomRightStimImage.pos = self.pos['bottomRight']
+		self.bottomRightStimImage.size = self.stim_size
+
+		#Top Right
+		self.topRightStimImage = self.imageMatrix[topRightStimName][0]
+		self.topRightStimImage.pos = self.pos['topRight']
+		self.topRightStimImage.size = self.stim_size
+
+		self.bottomLeftRect = visual.Rect(
 			self.experiment.win,
-			width=600, height=600,
+			width=self.fam_rect_size[0], height=self.fam_rect_size[1],
 			fillColor="lightgray", lineColor=None,
-			pos=self.pos['centerLeft']
+			pos=self.pos['bottomLeft']
 		)
 
-		self.rightRect = visual.Rect(
+		self.bottomRightRect = visual.Rect(
 			self.experiment.win,
-			width=600, height=600,
+			width=self.fam_rect_size[0], height=self.fam_rect_size[1],
 			fillColor="lightgray", lineColor=None,
-			pos=self.pos['centerRight']
+			pos=self.pos['bottomRight']
+		)
+		self.topLeftRect = visual.Rect(
+			self.experiment.win,
+			width=self.fam_rect_size[0], height=self.fam_rect_size[1],
+			fillColor="lightgray", lineColor=None,
+			pos=self.pos['topLeft']
+		)
+
+		self.topRightRect = visual.Rect(
+			self.experiment.win,
+			width=self.fam_rect_size[0], height=self.fam_rect_size[1],
+			fillColor="lightgray", lineColor=None,
+			pos=self.pos['topRight']
 		)
 
 		# Draw background rectangles first, then the images
@@ -667,10 +707,10 @@ class ExpPresentation(Exp):
 			self.experiment.tracker.log("startScreen")
 
 		# Create adnimations
-		leftAnimation = LoomAnimation(
-			stim=self.leftStimImage,
+		topLeftAnimation = LoomAnimation(
+			stim=self.topLeftStimImage,
 			win=self.experiment.win,
-			init_size=self.leftStimImage.size,
+			init_size=self.topLeftStimImage.size,
 			target_size_factor=self.targetSizeFactor,
 			loom_in_duration=self.loomDuration,
 			loom_out_duration=self.loomDuration,
@@ -679,10 +719,35 @@ class ExpPresentation(Exp):
 			jiggle_frequency=self.jiggleFrequency,
 			looping= True  # Enable looping for continuous animation
 		)
-		rightAnimation = LoomAnimation(
-			stim=self.rightStimImage,
+		topRightAnimation = LoomAnimation(
+			stim=self.topRightStimImage,
 			win=self.experiment.win,
-			init_size=self.rightStimImage.size,
+			init_size=self.topRightStimImage.size,
+			target_size_factor=self.targetSizeFactor,
+			loom_in_duration=self.loomDuration,
+			loom_out_duration=self.loomDuration,
+			wiggle_duration=self.wiggleDuration,
+			jiggle_amplitude=self.jiggleAmplitude,
+			jiggle_frequency=self.jiggleFrequency,
+			looping= True   # Enable looping for continuous animation
+		)
+
+		bottomLeftAnimation = LoomAnimation(
+			stim=self.bottomLeftStimImage,
+			win=self.experiment.win,
+			init_size=self.bottomLeftStimImage.size,
+			target_size_factor=self.targetSizeFactor,
+			loom_in_duration=self.loomDuration,
+			loom_out_duration=self.loomDuration,
+			wiggle_duration=self.wiggleDuration,
+			jiggle_amplitude=self.jiggleAmplitude,
+			jiggle_frequency=self.jiggleFrequency,
+			looping= True  # Enable looping for continuous animation
+		)
+		bottomRightAnimation = LoomAnimation(
+			stim=self.bottomRightStimImage,
+			win=self.experiment.win,
+			init_size=self.bottomRightStimImage.size,
 			target_size_factor=self.targetSizeFactor,
 			loom_in_duration=self.loomDuration,
 			loom_out_duration=self.loomDuration,
@@ -695,17 +760,31 @@ class ExpPresentation(Exp):
 		# pause for non-contingent frozen display
 		
 		# start playing each video for 1 sec
-		activefamstartleft = libtime.get_time()
-		self.activefamtimeoutTime = 2000
-		while libtime.get_time() - activefamstartleft < self.activefamtimeoutTime:
-			self.leftRect.draw()
-			self.leftStimImage.draw()
+		
+		self.activefamtimeoutTime = 1000
+
+		activefamstarttopleft = libtime.get_time()
+		while libtime.get_time() - activefamstarttopleft < self.activefamtimeoutTime:
+			self.topLeftRect.draw()
+			self.topLeftStimImage.draw()
 			self.experiment.win.flip()
 
-		activefamstartright = libtime.get_time()
-		while libtime.get_time() - activefamstartright < self.activefamtimeoutTime:
-			self.rightRect.draw()
-			self.rightStimImage.draw() 
+		activefamstarttopright = libtime.get_time()
+		while libtime.get_time() - activefamstarttopright < self.activefamtimeoutTime:
+			self.topRightRect.draw()
+			self.topRightStimImage.draw() 
+			self.experiment.win.flip()
+
+		activefamstartbottomright = libtime.get_time()
+		while libtime.get_time() - activefamstartbottomright < self.activefamtimeoutTime:
+			self.bottomRightRect.draw()
+			self.bottomRightStimImage.draw()
+			self.experiment.win.flip()
+		
+		activefamstartbottomleft = libtime.get_time()
+		while libtime.get_time() - activefamstartbottomleft < self.activefamtimeoutTime:
+			self.bottomLeftRect.draw()
+			self.bottomLeftStimImage.draw()
 			self.experiment.win.flip()
 
 		libtime.pause(500)
@@ -733,12 +812,16 @@ class ExpPresentation(Exp):
 		#### Contingent Start #
 		trialTimerStart = libtime.get_time()
 		selectionNum = 0
-		t0Left = None
-		t0Right = None
+		t0TopLeft = None
+		t0TopRight = None
+		t0BottomLeft = None
+		t0BottomRight = None
 		t0None = None
 		t0Away = None
-		countLeft = 0
-		countRight = 0
+		countBottomLeft = 0
+		countBottomRight = 0
+		countTopLeft = 0
+		countTopRight = 0
 		countDiff = 0
 		countAway = 0
 		response = None
@@ -747,6 +830,8 @@ class ExpPresentation(Exp):
 		eventTriggered = 0
 		firstTrigger = 0
 		lastms = []
+		audio_start_time = None
+		label_duration = 1500
 
 		# list of events
 		rt_list = []
@@ -760,24 +845,36 @@ class ExpPresentation(Exp):
 		audioStopTime_list = []
 		eventStartTime_list = []
 
-		leftAnimationActive = False
-		rightAnimationActive = False
+		bottomLeftAnimationActive = False
+		bottomRightAnimationActive = False
+		topLeftAnimationActive = False
+		topRightAnimationActive = False
 		activeAnimation = None
 		animating = False
+		curLook = "none"
 
 		# Main trial loop
 		while libtime.get_time() - trialTimerStart < self.timeoutTime:
-
+			print(curLook)
 			# Update animations based on current state
-			if leftAnimationActive:
-				leftAnimation.update()
-			if rightAnimationActive:
-				rightAnimation.update()
+			if bottomLeftAnimationActive:
+				bottomLeftAnimation.update()
+			if bottomRightAnimationActive:
+				bottomRightAnimation.update()
+			if topLeftAnimationActive:
+				topLeftAnimation.update()
+			if topRightAnimationActive:
+				topRightAnimation.update()
 
-			self.leftRect.draw()
-			self.rightRect.draw()
-			self.leftStimImage.draw()
-			self.rightStimImage.draw()
+			self.topLeftRect.draw()
+			self.topRightRect.draw()
+			self.bottomLeftRect.draw()
+			self.bottomRightRect.draw()
+
+			self.topLeftStimImage.draw()
+			self.topRightStimImage.draw()
+			self.bottomRightStimImage.draw()
+			self.bottomLeftStimImage.draw()
 			self.experiment.win.flip()
 
 			if self.experiment.subjVariables['activeMode'] == 'gaze':
@@ -786,15 +883,24 @@ class ExpPresentation(Exp):
 				sampledGazePos = self.experiment.tracker.sample()
 				print(sampledGazePos)
 
-				if self.aoiLeft.contains(sampledGazePos):
-					if t0Left == None:
-						t0Left = libtime.get_time()
-					curLook = "left"
-				elif self.aoiRight.contains(sampledGazePos):
+				if self.posAOIS['bottomLeft'].contains(sampledGazePos):
+					if t0BottomLeft == None:
+						t0BottomLeft = libtime.get_time()
+					curLook = "bottomLeft"
+				elif self.posAOIS['topLeft'].contains(sampledGazePos):
+					if t0TopLeft == None:
+						t0TopLeft = libtime.get_time()
+					curLook = "topLeft"
+				elif self.posAOIS['topRight'].contains(sampledGazePos):
 					#countRight += 1
-					if t0Right == None:
-						t0Right = libtime.get_time()
-					curLook = "right"
+					if t0TopRight == None:
+						t0TopRight = libtime.get_time()
+					curLook = "topRight"
+				elif self.posAOIS['bottomRight'].contains(sampledGazePos):
+					#countRight += 1
+					if t0BottomRight == None:
+						t0BottomRight = libtime.get_time()
+					curLook = "bottomRight"
 				elif sampledGazePos == self.lookAwayPos:
 					if t0Away == None:
 						t0Away = libtime.get_time()
@@ -804,34 +910,6 @@ class ExpPresentation(Exp):
 						t0None = libtime.get_time()
 					curLook = "none"
 
-			if self.experiment.subjVariables['activeMode'] == 'input':
-				curLook = "away"
-				keys = self.experiment.input.getKeys(waitRelease=False, clear=False)
-				keynames = [key.name for key in keys]
-
-
-				if (keys and not keys[-1].duration): #if key is being held down
-					currkey = keys[-1].name
-
-					if currkey == 'left':
-						if t0Left == None:
-							t0Left = libtime.get_time()
-						curLook = "left"
-					elif currkey == 'right':
-						#countRight += 1
-						if t0Right == None:
-							t0Right = libtime.get_time()
-						curLook = "right"
-					elif currkey == None:
-						if t0None == None:
-							t0None = libtime.get_time()
-						curLook = "none"
-					else:
-						if t0Away == None:
-							t0Away = libtime.get_time()
-						curLook = "away"
-					print(curLook)
-
 			# If an event has already been triggered, it can not be the first trigger
 			if eventTriggered == 1:
 				firstTrigger = 0
@@ -839,7 +917,7 @@ class ExpPresentation(Exp):
 			# If an event is not currently triggered...
 			elif eventTriggered == 0:
 
-				if (t0Left is not None) and libtime.get_time() - t0Left >= self.firstTriggerThreshold:
+				if (t0BottomLeft is not None) and libtime.get_time() - t0BottomLeft >= self.firstTriggerThreshold:
 
 					selectionNum += 1
 					eventTriggered = 1
@@ -847,7 +925,7 @@ class ExpPresentation(Exp):
 					if firstTrigger == 0:
 						firstTrigger = 1
 
-					response = "left"	
+					response = "bottomLeft"	
 
 					eventTriggerTime = libtime.get_time()
 					eventStartTime_list.append(eventTriggerTime)
@@ -855,8 +933,8 @@ class ExpPresentation(Exp):
 					rt_list.append(rt)
 					selectionTime = libtime.get_time()
 					response_list.append(response)
-					leftAnimationActive = True
-					activeAnimation = leftAnimation
+					bottomLeftAnimationActive = True
+					activeAnimation = bottomLeftAnimation
 
 					# log event
 					if self.experiment.subjVariables['eyetracker'] == 'yes':
@@ -868,7 +946,7 @@ class ExpPresentation(Exp):
 						writer = csv.writer(file)
 						writer.writerow(log_file_list)
 
-				elif (t0Right is not None) and libtime.get_time() - t0Right >= self.firstTriggerThreshold:
+				elif (t0BottomRight is not None) and libtime.get_time() - t0BottomRight >= self.firstTriggerThreshold:
 					selectionNum += 1
 					eventTriggered = 1
 					animating = True
@@ -892,24 +970,88 @@ class ExpPresentation(Exp):
 					selectionTime = libtime.get_time()
 					gazeCon = True
 					contingent = True
-					response = "right"
+					response = "bottomRight"
 					response_list.append(response)
-					rightAnimationActive = True
-					activeAnimation = rightAnimation
+					bottomRightAnimationActive = True
+					activeAnimation = bottomRightAnimation
+
+				elif (t0TopLeft is not None) and libtime.get_time() - t0TopLeft >= self.firstTriggerThreshold:
+					selectionNum += 1
+					eventTriggered = 1
+					animating = True
+					if firstTrigger == 0:
+						firstTrigger = 1
+
+					eventTriggerTime = libtime.get_time()
+					eventStartTime_list.append(eventTriggerTime)
+					rt = eventTriggerTime - trialTimerStart
+					rt_list.append(rt)
+
+					# log event
+					if self.experiment.subjVariables['eyetracker'] == 'yes':
+						self.experiment.tracker.log("selection" + str(selectionNum) + "    " + curLook)
+					log_file_list = [libtime.get_time(), "selection" + str(selectionNum) + "    " + curLook,
+										 curLook, response]
+
+					with open(trigger_filename, 'a', newline='') as file:
+						writer = csv.writer(file)
+						writer.writerow(log_file_list)
+					selectionTime = libtime.get_time()
+					gazeCon = True
+					contingent = True
+					response = "topLeft"
+					response_list.append(response)
+					topLeftAnimationActive = True
+					activeAnimation = topLeftAnimation
+
+				elif (t0TopRight is not None) and libtime.get_time() - t0TopRight >= self.firstTriggerThreshold:
+					selectionNum += 1
+					eventTriggered = 1
+					animating = True
+					if firstTrigger == 0:
+						firstTrigger = 1
+
+					eventTriggerTime = libtime.get_time()
+					eventStartTime_list.append(eventTriggerTime)
+					rt = eventTriggerTime - trialTimerStart
+					rt_list.append(rt)
+
+					# log event
+					if self.experiment.subjVariables['eyetracker'] == 'yes':
+						self.experiment.tracker.log("selection" + str(selectionNum) + "    " + curLook)
+					log_file_list = [libtime.get_time(), "selection" + str(selectionNum) + "    " + curLook,
+										 curLook, response]
+
+					with open(trigger_filename, 'a', newline='') as file:
+						writer = csv.writer(file)
+						writer.writerow(log_file_list)
+					selectionTime = libtime.get_time()
+					gazeCon = True
+					contingent = True
+					response = "topRight"
+					response_list.append(response)
+					topRightAnimationActive = True
+					activeAnimation = topRightAnimation
 
 			if firstTrigger == 1:
-				chosenAudio = curTrial[response + 'Audio']
+				audioTime = libtime.get_time()
+				chosenAudio = curTrial[response + 'Label']
 				chosenStim_list.append(response + 'Image')  # Store which image was chosen
 				chosenAudio_list.append(chosenAudio)
-
-				self.soundMatrix[chosenAudio].setLoops(-1)
-				self.soundMatrix[chosenAudio].play(loops=3)
 
 				if activeAnimation:
 					activeAnimation.resume()
 
-				audioTime = libtime.get_time()
-				audioStartTime_list.append(audioTime)
+				audio_start_time = libtime.get_time()
+				minPlaybackTime = audio_start_time + label_duration
+				audioStartTime_list.append(audio_start_time)
+
+				#self.soundMatrix[chosenAudio].setLoops(-1)
+				try:
+					self.soundMatrix[chosenAudio].play()
+				except Exception as e:
+					print(f"[ERROR] Failed to play audio: {e}")
+				
 
 				if self.experiment.subjVariables['eyetracker'] == "yes":
 					# log audio event
@@ -925,32 +1067,61 @@ class ExpPresentation(Exp):
 
 			if eventTriggered == 1 and animating:
 				# Handle looking away
-				if curLook == "away" and (response == "left" or response == "right"):
+				if curLook == "away" and (response == "topLeft" or response == "topRight" or 
+							  response == "bottomLeft" or response == "bottomRight"):
 					if t0Away == None:
 						t0Away = libtime.get_time()
 						# Pause the animation when gaze moves away
-						if response == "left" and leftAnimationActive:
-							leftAnimation.pause()
-						elif response == "right" and rightAnimationActive:
-							rightAnimation.pause()
+						if response == "bottomLeft" and bottomLeftAnimationActive:
+							bottomLeftAnimation.pause()
+						elif response == "bottomRight" and bottomRightAnimationActive:
+							bottomRightAnimation.pause()
+						elif response == "topRight" and topRightAnimationActive:
+							topRightAnimation.pause()
+						elif response == "topLeft" and topLeftAnimationActive:
+							topLeftAnimation.pause()
 
 				# If the eyetracker refinds, reset to none?
 				elif curLook == response:
 					t0Away = None
 					t0None = None
-					if response == "left" and leftAnimationActive:
-						leftAnimation.resume()
-					elif response == "right" and rightAnimationActive:
-						rightAnimation.resume()
+					if response == "bottomLeft" and bottomLeftAnimationActive:
+						bottomLeftAnimation.resume()
+					elif response == "bottomRight" and bottomRightAnimationActive:
+						bottomRightAnimation.resume()
+					elif response == "topRight" and topRightAnimationActive:
+						topRightAnimation.resume()
+					elif response == "topLeft" and topLeftAnimationActive:
+						topLeftAnimation.resume()
+					current_time = libtime.get_time()
+					if current_time >= minPlaybackTime:
+						try:
+							self.soundMatrix[chosenAudio].play()
+							audio_start_time = current_time
+							minPlaybackTime = current_time + label_duration
+
+							if self.experiment.subjVariables['eyetracker'] == "yes":
+								self.experiment.tracker.log("audioLoop" + str(selectionNum))
+							log_file_list = [current_time, "audioLoop" + str(selectionNum), curLook, response]
+							with open(trigger_filename, 'a', newline='') as file:
+								writer = csv.writer(file)
+								writer.writerow(log_file_list)
+						except Exception as e:
+							print(f"[ERROR] Failed to loop audio: {e}")
 			
-				elif curLook == "none" and (response == "left" or response == "right"):
+				elif curLook == "none" and (response == "topLeft" or response == "topRight" or 
+							  response == "bottomLeft" or response == "bottomRight"):
 					if t0None == None:
 						t0None = libtime.get_time()
 						# Pause the animation
-						if response == "left" and leftAnimationActive:
-							leftAnimation.pause()
-						elif response == "right" and rightAnimationActive:
-							rightAnimation.pause()
+						if response == "bottomLeft" and bottomLeftAnimationActive:
+							bottomLeftAnimation.pause()
+						elif response == "bottomRight" and bottomRightAnimationActive:
+							bottomRightAnimation.pause()
+						elif response == "topRight" and topRightAnimationActive:
+							topRightAnimation.pause()
+						elif response == "topLeft" and topLeftAnimationActive:
+							topLeftAnimation.pause()
 
 				# Build threshold booleans outside if statement for clarity
 				triggerEnd = False
@@ -964,11 +1135,17 @@ class ExpPresentation(Exp):
 						print("End None:", libtime.get_time() - t0None)
 
 				# check if the infant has switched
-				if (curLook != response and triggerEnd) or libtime.get_time() - audioTime > self.maxLabelTime:
+
+				current_time = libtime.get_time()
+				min_played = current_time >= minPlaybackTime
+				exceeded_max = current_time - audioTime >= self.maxLabelTime
+				if min_played and ((curLook != response and triggerEnd) or exceeded_max):
 					t0None = None
 					t0Away = None
-					t0Right = None
-					t0Left = None
+					t0BottomRight = None
+					t0BottomLeft = None
+					t0TopRight = None
+					t0TopLeft = None
 
 					eventTriggered = 0
 					animating = False
@@ -977,14 +1154,22 @@ class ExpPresentation(Exp):
 					self.soundMatrix[chosenAudio].stop()
 					
 					# Reset animations
-					if leftAnimationActive:
-						leftAnimation.pause()
-						leftAnimation.reset_stimulus()
-						leftAnimationActive = False
-					if rightAnimationActive:
-						rightAnimation.pause()
-						rightAnimation.reset_stimulus()
-						rightAnimationActive = False
+					if bottomLeftAnimationActive:
+						bottomLeftAnimation.pause()
+						bottomLeftAnimation.reset_stimulus()
+						bottomLeftAnimationActive = False
+					if topLeftAnimationActive:
+						topLeftAnimation.pause()
+						topLeftAnimation.reset_stimulus()
+						topLeftAnimationActive = False
+					if topRightAnimationActive:
+						topRightAnimation.pause()
+						topRightAnimation.reset_stimulus()
+						topRightAnimationActive = False
+					if bottomRightAnimationActive:
+						bottomRightAnimation.pause()
+						bottomRightAnimation.reset_stimulus()
+						bottomRightAnimationActive = False
 					
 					activeAnimation = None
 
@@ -1022,10 +1207,14 @@ class ExpPresentation(Exp):
 				audioStopTime_list.append(audioStopTime)
 			
 			# Reset animations
-			if leftAnimationActive:
-				leftAnimation.reset_stimulus()
-			if rightAnimationActive:
-				rightAnimation.reset_stimulus()
+			if bottomLeftAnimationActive:
+				bottomLeftAnimation.reset_stimulus()
+			if bottomRightAnimationActive:
+				bottomRightAnimation.reset_stimulus()
+			if topLeftAnimationActive:
+				topLeftAnimation.reset_stimulus()
+			if topRightAnimationActive:
+				topRightAnimation.reset_stimulus()
 		self.experiment.disp.fill(self.experiment.blackScreen)
 		self.experiment.disp.show()
 		# Clear screen
@@ -1207,8 +1396,8 @@ currentPresentation = ExpPresentation(currentExp)
 
 currentPresentation.initializeExperiment()
 currentPresentation.presentScreen(currentPresentation.initialScreen)
-currentPresentation.cycleThroughTrials(whichPart = "familiarizationPhase")
+#currentPresentation.cycleThroughTrials(whichPart = "familiarizationPhase")
 #currentPresentation.cycleThroughTrials(whichPart= "lwlTest")
-#currentPresentation.cycleThroughTrials(whichPart = "activeTraining")
-#currentPresentation.cycleThroughTrials(whichPart = "activeTest")
+currentPresentation.cycleThroughTrials(whichPart = "activeTraining")
+currentPresentation.cycleThroughTrials(whichPart = "activeTest")
 currentPresentation.EndDisp()

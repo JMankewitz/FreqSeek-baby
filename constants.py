@@ -1,6 +1,5 @@
 ## This file is part of PyGaze - the open-source toolbox for eye tracking
 
-
 # SUBJECT PATHING
 LOGFILEPATH = 'eyetrackingData/' #set path for eyetracking data
 print(LOGFILEPATH)
@@ -8,6 +7,9 @@ LOGFILENAME = LOGFILEPATH #initialize file name
 LOGFILE = LOGFILENAME # .txt; adding path before logfilename is optional; logs responses (NOT eye movements, these are stored in an EDF file!)
 
 DUMMYMODE = True # False for gaze contingent display, True for dummy mode (using mouse or joystick)
+# general
+TRACKERTYPE = 'dummy' # either 'smi', 'eyelink' or 'dummy' (NB: if DUMMYMODE is True, trackertype will be set to dummy automatically)
+#TRACKERTYPE = 'tobii'
 
 # DISPLAY
 # used in libscreen, for the *_display functions. The values may be adjusted,
@@ -16,7 +18,7 @@ SCREENNR = 1 # number of the screen used for displaying experiment
 DISPTYPE = 'psychopy' # either 'psychopy' or 'pygame'
 DISPSIZE = (1920, 1080) # canvas size
 #SCREENSIZE = (34.5, 19.7) # physical display size in cm
-MOUSEVISIBLE = False # mouse visibility
+MOUSEVISIBLE = True # mouse visibility
 #BGC = (125,125,125) # backgroundcolour
 BGC = "black" # backgroundcolour
 FGC = "black" # foregroundcolour
@@ -45,9 +47,7 @@ JOYTIMEOUT = None # None for no timeout, or a value in milliseconds
 
 
 # EYETRACKER
-# general
-TRACKERTYPE = 'dummy' # either 'smi', 'eyelink' or 'dummy' (NB: if DUMMYMODE is True, trackertype will be set to dummy automatically)
-#TRACKERTYPE = 'tobii'
+
 SACCVELTHRESH = 35 # degrees per second, saccade velocity threshold
 SACCACCTHRESH = 9500 # degrees per second, saccade acceleration threshold
 EVENTDETECTION = 'native'
