@@ -253,7 +253,7 @@ class ExpPresentation(Exp):
 		self.awayThreshold = 250  # (ms) time of NA/away looks for contingent ends - should account for blinks. Lower is more sensitive, higher is more forgiving.
 		self.noneThreshold = 1  # (ms) time of look to on-screen but non-trigger AOI before contingent ends - should account for shifts
 
-		self.timeoutTime = 10000  # (ms) 30s, length of trial
+		self.timeoutTime = 15000  # (ms) 30s, length of trial
 		self.rect_size = (500, 500)
 		self.fam_rect_size = (500, 500)
 		self.fam_stim_size = (400, 400)
@@ -831,7 +831,7 @@ class ExpPresentation(Exp):
 		firstTrigger = 0
 		lastms = []
 		audio_start_time = None
-		label_duration = 1500
+		label_duration = 1000
 
 		# list of events
 		rt_list = []
@@ -1396,7 +1396,7 @@ currentPresentation = ExpPresentation(currentExp)
 
 currentPresentation.initializeExperiment()
 currentPresentation.presentScreen(currentPresentation.initialScreen)
-#currentPresentation.cycleThroughTrials(whichPart = "familiarizationPhase")
+currentPresentation.cycleThroughTrials(whichPart = "familiarizationPhase")
 #currentPresentation.cycleThroughTrials(whichPart= "lwlTest")
 currentPresentation.cycleThroughTrials(whichPart = "activeTraining")
 currentPresentation.cycleThroughTrials(whichPart = "activeTest")
