@@ -2,4 +2,4 @@ trialType,trialID,blockID,bottomLeftStim,bottomLeftStimType,bottomLeftLabel,topL
 activeTest,1,1,object1,highfreq,beevo,object2,lowfreq,kita,object3,lowfreq,manu,object4,highfreq,guffy,2500,0,0,0,,,,,,,,
 activeTest,2,1,object2,lowfreq,kita,object4,highfreq,guffy,object1,highfreq,beevo,object3,lowfreq,manu,2500,0,0,0,,,,,,,,
 activeTest,3,1,object3,lowfreq,manu,object1,highfreq,beevo,object4,highfreq,guffy,object2,lowfreq,kita,2500,0,0,0,,,,,,,,
-activeTest,3,1,object4,highfreq,guffy,object3,lowfreq,manu,object2,lowfreq,kita,object1,highfreq,beevo,2500,0,0,0,,,,,,,,
+activeTest,4,1,object4,highfreq,guffy,object3,lowfreq,manu,object2,lowfreq,kita,object1,highfreq,beevo,2500,0,0,0,,,,,,,,

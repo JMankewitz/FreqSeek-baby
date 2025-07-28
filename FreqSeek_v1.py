@@ -618,11 +618,11 @@ class ExpPresentation(Exp):
 
 		writeToFile(self.experiment.trainingOutputFile, curLine)
 
-	def presentActiveTrial(self, curTrial, curActiveTrialIndex, trialFieldNames, stage):
+	def presentActiveTrial(self, curTrial, curActiveTrialIndex, trialFieldNames, stage,  *args):
 		print("Start active")
 		csv_header = ["timestamp","eyetrackerLog",  "sampledLook", "avgPOS", "curLook",  "response"]
 		trigger_filename = 'data/' + stage + '/' + 'tracking_data_' + self.experiment.subjVariables['subjCode'] + '.txt'
-
+		ctrl = ActiveTrialController(self, curTrial)
 		with open(trigger_filename, "w", newline='') as file:
 			writer = csv.writer(file)
 			writer.writerow(csv_header)
@@ -691,7 +691,7 @@ class ExpPresentation(Exp):
 
 		# Initialize eyetracker
 
-		#libtime.pause(self.ISI)
+		libtime.pause(self.ISI)
 
 		if self.experiment.subjVariables['eyetracker'] == 'yes':
 			self.experiment.tracker.start_recording()
@@ -761,7 +761,7 @@ class ExpPresentation(Exp):
 		
 		# start playing each video for 1 sec
 		
-		self.activefamtimeoutTime = 1000
+		self.activefamtimeoutTime = 1500
 
 		activefamstarttopleft = libtime.get_time()
 		while libtime.get_time() - activefamstarttopleft < self.activefamtimeoutTime:
@@ -808,413 +808,9 @@ class ExpPresentation(Exp):
 		with open(trigger_filename, 'a', newline='') as file:
 			writer = csv.writer(file)
 			writer.writerow(log_file_list)
-
-		#### Contingent Start #
-		trialTimerStart = libtime.get_time()
-		selectionNum = 0
-		t0TopLeft = None
-		t0TopRight = None
-		t0BottomLeft = None
-		t0BottomRight = None
-		t0None = None
-		t0Away = None
-		countBottomLeft = 0
-		countBottomRight = 0
-		countTopLeft = 0
-		countTopRight = 0
-		countDiff = 0
-		countAway = 0
-		response = None
-		gazeCon = False
-		contingent = False
-		eventTriggered = 0
-		firstTrigger = 0
-		lastms = []
-		audio_start_time = None
-		label_duration = 1000
-
-		# list of events
-		rt_list = []
-		response_list = []
-		chosenStim_list = []
-		chosenLabel_list = []
-		chosenAudio_list = []
-		chosenRole_list = []
-		audioPlayTime_list = []
-		audioStartTime_list = []
-		audioStopTime_list = []
-		eventStartTime_list = []
-
-		bottomLeftAnimationActive = False
-		bottomRightAnimationActive = False
-		topLeftAnimationActive = False
-		topRightAnimationActive = False
-		activeAnimation = None
-		animating = False
-		curLook = "none"
-
-		# Main trial loop
-		while libtime.get_time() - trialTimerStart < self.timeoutTime:
-			print(curLook)
-			# Update animations based on current state
-			if bottomLeftAnimationActive:
-				bottomLeftAnimation.update()
-			if bottomRightAnimationActive:
-				bottomRightAnimation.update()
-			if topLeftAnimationActive:
-				topLeftAnimation.update()
-			if topRightAnimationActive:
-				topRightAnimation.update()
-
-			self.topLeftRect.draw()
-			self.topRightRect.draw()
-			self.bottomLeftRect.draw()
-			self.bottomRightRect.draw()
-
-			self.topLeftStimImage.draw()
-			self.topRightStimImage.draw()
-			self.bottomRightStimImage.draw()
-			self.bottomLeftStimImage.draw()
-			self.experiment.win.flip()
-
-			if self.experiment.subjVariables['activeMode'] == 'gaze':
-				# get gaze position
-				# get current sampled gaze position
-				sampledGazePos = self.experiment.tracker.sample()
-				print(sampledGazePos)
-
-				if self.posAOIS['bottomLeft'].contains(sampledGazePos):
-					if t0BottomLeft == None:
-						t0BottomLeft = libtime.get_time()
-					curLook = "bottomLeft"
-				elif self.posAOIS['topLeft'].contains(sampledGazePos):
-					if t0TopLeft == None:
-						t0TopLeft = libtime.get_time()
-					curLook = "topLeft"
-				elif self.posAOIS['topRight'].contains(sampledGazePos):
-					#countRight += 1
-					if t0TopRight == None:
-						t0TopRight = libtime.get_time()
-					curLook = "topRight"
-				elif self.posAOIS['bottomRight'].contains(sampledGazePos):
-					#countRight += 1
-					if t0BottomRight == None:
-						t0BottomRight = libtime.get_time()
-					curLook = "bottomRight"
-				elif sampledGazePos == self.lookAwayPos:
-					if t0Away == None:
-						t0Away = libtime.get_time()
-					curLook = "away"
-				else:
-					if t0None == None:
-						t0None = libtime.get_time()
-					curLook = "none"
-
-			# If an event has already been triggered, it can not be the first trigger
-			if eventTriggered == 1:
-				firstTrigger = 0
-
-			# If an event is not currently triggered...
-			elif eventTriggered == 0:
-
-				if (t0BottomLeft is not None) and libtime.get_time() - t0BottomLeft >= self.firstTriggerThreshold:
-
-					selectionNum += 1
-					eventTriggered = 1
-					animating = True
-					if firstTrigger == 0:
-						firstTrigger = 1
-
-					response = "bottomLeft"	
-
-					eventTriggerTime = libtime.get_time()
-					eventStartTime_list.append(eventTriggerTime)
-					rt = eventTriggerTime - trialTimerStart
-					rt_list.append(rt)
-					selectionTime = libtime.get_time()
-					response_list.append(response)
-					bottomLeftAnimationActive = True
-					activeAnimation = bottomLeftAnimation
-
-					# log event
-					if self.experiment.subjVariables['eyetracker'] == 'yes':
-						self.experiment.tracker.log("selection" + str(selectionNum) + "    " + curLook)
-					log_file_list = [libtime.get_time(), "selection" + str(selectionNum) + "    " + curLook,
-										 curLook, response]
-
-					with open(trigger_filename, 'a', newline='') as file:
-						writer = csv.writer(file)
-						writer.writerow(log_file_list)
-
-				elif (t0BottomRight is not None) and libtime.get_time() - t0BottomRight >= self.firstTriggerThreshold:
-					selectionNum += 1
-					eventTriggered = 1
-					animating = True
-					if firstTrigger == 0:
-						firstTrigger = 1
-
-					eventTriggerTime = libtime.get_time()
-					eventStartTime_list.append(eventTriggerTime)
-					rt = eventTriggerTime - trialTimerStart
-					rt_list.append(rt)
-
-					# log event
-					if self.experiment.subjVariables['eyetracker'] == 'yes':
-						self.experiment.tracker.log("selection" + str(selectionNum) + "    " + curLook)
-					log_file_list = [libtime.get_time(), "selection" + str(selectionNum) + "    " + curLook,
-										 curLook, response]
-
-					with open(trigger_filename, 'a', newline='') as file:
-						writer = csv.writer(file)
-						writer.writerow(log_file_list)
-					selectionTime = libtime.get_time()
-					gazeCon = True
-					contingent = True
-					response = "bottomRight"
-					response_list.append(response)
-					bottomRightAnimationActive = True
-					activeAnimation = bottomRightAnimation
-
-				elif (t0TopLeft is not None) and libtime.get_time() - t0TopLeft >= self.firstTriggerThreshold:
-					selectionNum += 1
-					eventTriggered = 1
-					animating = True
-					if firstTrigger == 0:
-						firstTrigger = 1
-
-					eventTriggerTime = libtime.get_time()
-					eventStartTime_list.append(eventTriggerTime)
-					rt = eventTriggerTime - trialTimerStart
-					rt_list.append(rt)
-
-					# log event
-					if self.experiment.subjVariables['eyetracker'] == 'yes':
-						self.experiment.tracker.log("selection" + str(selectionNum) + "    " + curLook)
-					log_file_list = [libtime.get_time(), "selection" + str(selectionNum) + "    " + curLook,
-										 curLook, response]
-
-					with open(trigger_filename, 'a', newline='') as file:
-						writer = csv.writer(file)
-						writer.writerow(log_file_list)
-					selectionTime = libtime.get_time()
-					gazeCon = True
-					contingent = True
-					response = "topLeft"
-					response_list.append(response)
-					topLeftAnimationActive = True
-					activeAnimation = topLeftAnimation
-
-				elif (t0TopRight is not None) and libtime.get_time() - t0TopRight >= self.firstTriggerThreshold:
-					selectionNum += 1
-					eventTriggered = 1
-					animating = True
-					if firstTrigger == 0:
-						firstTrigger = 1
-
-					eventTriggerTime = libtime.get_time()
-					eventStartTime_list.append(eventTriggerTime)
-					rt = eventTriggerTime - trialTimerStart
-					rt_list.append(rt)
-
-					# log event
-					if self.experiment.subjVariables['eyetracker'] == 'yes':
-						self.experiment.tracker.log("selection" + str(selectionNum) + "    " + curLook)
-					log_file_list = [libtime.get_time(), "selection" + str(selectionNum) + "    " + curLook,
-										 curLook, response]
-
-					with open(trigger_filename, 'a', newline='') as file:
-						writer = csv.writer(file)
-						writer.writerow(log_file_list)
-					selectionTime = libtime.get_time()
-					gazeCon = True
-					contingent = True
-					response = "topRight"
-					response_list.append(response)
-					topRightAnimationActive = True
-					activeAnimation = topRightAnimation
-
-			if firstTrigger == 1:
-				audioTime = libtime.get_time()
-				chosenAudio = curTrial[response + 'Label']
-				chosenStim_list.append(response + 'Image')  # Store which image was chosen
-				chosenAudio_list.append(chosenAudio)
-
-				if activeAnimation:
-					activeAnimation.resume()
-
-				audio_start_time = libtime.get_time()
-				minPlaybackTime = audio_start_time + label_duration
-				audioStartTime_list.append(audio_start_time)
-
-				#self.soundMatrix[chosenAudio].setLoops(-1)
-				try:
-					self.soundMatrix[chosenAudio].play()
-				except Exception as e:
-					print(f"[ERROR] Failed to play audio: {e}")
-				
-
-				if self.experiment.subjVariables['eyetracker'] == "yes":
-					# log audio event
-					self.experiment.tracker.log("audio" + str(selectionNum))
-				log_file_list = [libtime.get_time(), "audio" + str(selectionNum),
-									 curLook, response]
-
-				with open(trigger_filename, 'a', newline='') as file:
-					writer = csv.writer(file)
-					writer.writerow(log_file_list)
-				
-				firstTrigger = 0
-
-			if eventTriggered == 1 and animating:
-				# Handle looking away
-				if curLook == "away" and (response == "topLeft" or response == "topRight" or 
-							  response == "bottomLeft" or response == "bottomRight"):
-					if t0Away == None:
-						t0Away = libtime.get_time()
-						# Pause the animation when gaze moves away
-						if response == "bottomLeft" and bottomLeftAnimationActive:
-							bottomLeftAnimation.pause()
-						elif response == "bottomRight" and bottomRightAnimationActive:
-							bottomRightAnimation.pause()
-						elif response == "topRight" and topRightAnimationActive:
-							topRightAnimation.pause()
-						elif response == "topLeft" and topLeftAnimationActive:
-							topLeftAnimation.pause()
-
-				# If the eyetracker refinds, reset to none?
-				elif curLook == response:
-					t0Away = None
-					t0None = None
-					if response == "bottomLeft" and bottomLeftAnimationActive:
-						bottomLeftAnimation.resume()
-					elif response == "bottomRight" and bottomRightAnimationActive:
-						bottomRightAnimation.resume()
-					elif response == "topRight" and topRightAnimationActive:
-						topRightAnimation.resume()
-					elif response == "topLeft" and topLeftAnimationActive:
-						topLeftAnimation.resume()
-					current_time = libtime.get_time()
-					if current_time >= minPlaybackTime:
-						try:
-							self.soundMatrix[chosenAudio].play()
-							audio_start_time = current_time
-							minPlaybackTime = current_time + label_duration
-
-							if self.experiment.subjVariables['eyetracker'] == "yes":
-								self.experiment.tracker.log("audioLoop" + str(selectionNum))
-							log_file_list = [current_time, "audioLoop" + str(selectionNum), curLook, response]
-							with open(trigger_filename, 'a', newline='') as file:
-								writer = csv.writer(file)
-								writer.writerow(log_file_list)
-						except Exception as e:
-							print(f"[ERROR] Failed to loop audio: {e}")
-			
-				elif curLook == "none" and (response == "topLeft" or response == "topRight" or 
-							  response == "bottomLeft" or response == "bottomRight"):
-					if t0None == None:
-						t0None = libtime.get_time()
-						# Pause the animation
-						if response == "bottomLeft" and bottomLeftAnimationActive:
-							bottomLeftAnimation.pause()
-						elif response == "bottomRight" and bottomRightAnimationActive:
-							bottomRightAnimation.pause()
-						elif response == "topRight" and topRightAnimationActive:
-							topRightAnimation.pause()
-						elif response == "topLeft" and topLeftAnimationActive:
-							topLeftAnimation.pause()
-
-				# Build threshold booleans outside if statement for clarity
-				triggerEnd = False
-				if t0Away != None:
-					if libtime.get_time() - t0Away >= self.awayThreshold:
-						triggerEnd = True
-						print("End Away:", libtime.get_time() - t0Away)
-				elif t0None != None:
-					if libtime.get_time() - t0None >= self.noneThreshold:
-						triggerEnd = True
-						print("End None:", libtime.get_time() - t0None)
-
-				# check if the infant has switched
-
-				current_time = libtime.get_time()
-				min_played = current_time >= minPlaybackTime
-				exceeded_max = current_time - audioTime >= self.maxLabelTime
-				if min_played and ((curLook != response and triggerEnd) or exceeded_max):
-					t0None = None
-					t0Away = None
-					t0BottomRight = None
-					t0BottomLeft = None
-					t0TopRight = None
-					t0TopLeft = None
-
-					eventTriggered = 0
-					animating = False
-
-					# Stop sound
-					self.soundMatrix[chosenAudio].stop()
-					
-					# Reset animations
-					if bottomLeftAnimationActive:
-						bottomLeftAnimation.pause()
-						bottomLeftAnimation.reset_stimulus()
-						bottomLeftAnimationActive = False
-					if topLeftAnimationActive:
-						topLeftAnimation.pause()
-						topLeftAnimation.reset_stimulus()
-						topLeftAnimationActive = False
-					if topRightAnimationActive:
-						topRightAnimation.pause()
-						topRightAnimation.reset_stimulus()
-						topRightAnimationActive = False
-					if bottomRightAnimationActive:
-						bottomRightAnimation.pause()
-						bottomRightAnimation.reset_stimulus()
-						bottomRightAnimationActive = False
-					
-					activeAnimation = None
-
-					# Record timing data
-					audioStopTime = libtime.get_time()
-					audioPlayTime_list.append(audioStopTime - audioTime)
-					audioStopTime_list.append(audioStopTime)
-
-					# reset screen
-					if self.experiment.subjVariables['eyetracker'] == "yes":
-						# log audio event end
-						self.experiment.tracker.log(
-							"audioEnd" + str(selectionNum))
-					log_file_list = [libtime.get_time(), "audioEnd" + str(selectionNum),  curLook, response]
-
-					with open(trigger_filename, 'a', newline='') as file:
-						writer = csv.writer(file)
-						writer.writerow(log_file_list)
-
-			log_file_list = [libtime.get_time(), None, curLook, response]
-
-			with open(trigger_filename, 'a', newline='') as file:
-				writer = csv.writer(file)
-				writer.writerow(log_file_list)
-
-		if eventTriggered == 1:
-			# Stop sound
-			if 'chosenAudio' in locals() and chosenAudio in self.soundMatrix:
-				self.soundMatrix[chosenAudio].stop()
-				
-			# Record animation end
-			if 'audioTime' in locals():
-				audioStopTime = libtime.get_time()
-				audioPlayTime_list.append(audioStopTime - audioTime)
-				audioStopTime_list.append(audioStopTime)
-			
-			# Reset animations
-			if bottomLeftAnimationActive:
-				bottomLeftAnimation.reset_stimulus()
-			if bottomRightAnimationActive:
-				bottomRightAnimation.reset_stimulus()
-			if topLeftAnimationActive:
-				topLeftAnimation.reset_stimulus()
-			if topRightAnimationActive:
-				topRightAnimation.reset_stimulus()
+		
+		ctrl.run(timeout_s=self.timeoutTime / 1000.0)
+		
 		self.experiment.disp.fill(self.experiment.blackScreen)
 		self.experiment.disp.show()
 		# Clear screen
@@ -1223,7 +819,7 @@ class ExpPresentation(Exp):
 
 		# Record trial end
 		trialTimerEnd = libtime.get_time()
-		trialTime = trialTimerEnd - trialTimerStart
+		#trialTime = trialTimerEnd - trialTimerStart
 		
 		if self.experiment.subjVariables['eyetracker'] == "yes":
 			# Stop eye tracking

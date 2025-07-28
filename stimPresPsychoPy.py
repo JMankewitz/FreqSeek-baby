@@ -506,3 +506,203 @@ class LoomAnimation:
     def get_completed_cycles(self):
         """Get the number of completed animation cycles"""
         return self.completed_cycles
+    @property
+    def is_running(self):
+        """
+        True when the animation is actively updating
+        (i.e., not paused and not finished).
+        """
+        return (not self.is_paused) and (self.state != self.COMPLETE)
+	
+
+# utils for readability
+AOI_NAMES = ["topLeft", "topRight", "bottomLeft", "bottomRight", "away", "none"]
+
+class ActiveTrialController:
+    """One controller instance per active trial."""
+    FIXATION_MS = 300
+    LABEL_MIN_MS = 1000
+    LABEL_MAX_MS = 2500          # e.g. self.maxLabelTime
+    LOOKAWAY_MS = 200            # awayThreshold / noneThreshold
+	
+    def __init__(self, owner, cur_trial):
+        # --------------- handles -----------------
+        self.owner  = owner                # ExpPresentation layer
+        self.exp    = owner.experiment     # low‑level Experiment
+        self.win    = self.exp.win
+        self.tracker = self.exp.tracker
+
+        self.posAOIS     = owner.posAOIS      # polygons for hit‑testing
+        self.lookAwayPos = owner.lookAwayPos  # special “away” coordinate/value
+
+        # --------------- trial / state -----------
+        self.trial   = cur_trial
+        self.state   = "IDLE"
+        self.cur_aoi = None
+
+        AOI_NAMES = ["topLeft", "topRight", "bottomLeft", "bottomRight",
+                     "away", "none"]
+        self.fix_clock   = {a: core.Clock() for a in AOI_NAMES}   # per‑AOI
+        self.label_clock = core.Clock()                           # audio loop
+
+        # --------------- assets ------------------
+        self.assets = self._make_assets()
+
+        # pause all animations until first selection
+        for asset in self.assets.values():
+            asset['anim'].pause()
+
+    # ---------- helper construction ----------
+    def _make_assets(self):
+        """Return a mapping AOI → visuals/anim/audio."""
+        assets = {}
+        for aoi in ["topLeft", "topRight", "bottomLeft", "bottomRight"]:
+            stim_name  = self.trial[f"{aoi}Stim"]
+            label_name = self.trial[f"{aoi}Label"]
+
+            stim_img   = self.owner.imageMatrix[stim_name][0]
+            stim_img.pos  = self.owner.pos[aoi]
+            stim_img.size = self.owner.stim_size
+
+            assets[aoi] = dict(
+                stim  = stim_img,
+                rect  = visual.Rect(
+                            self.win,
+                            width=self.owner.fam_rect_size[0],
+                            height=self.owner.fam_rect_size[1],
+                            fillColor="lightgray",
+                            pos=self.owner.pos[aoi]),
+                anim  = LoomAnimation(
+                            stim=stim_img,
+                            win=self.win,
+                            init_size=stim_img.size,
+                            target_size_factor=self.owner.targetSizeFactor,
+                            loom_in_duration=self.owner.loomDuration,
+                            loom_out_duration=self.owner.loomDuration,
+                            wiggle_duration=self.owner.wiggleDuration,
+                            jiggle_amplitude=self.owner.jiggleAmplitude,
+                            jiggle_frequency=self.owner.jiggleFrequency,
+                            looping=True),
+                audio = self.owner.soundMatrix[label_name],
+            )
+        return assets
+
+    # ---------- main loop ----------
+    def run(self, timeout_s):
+        trial_clock = core.Clock()
+        while trial_clock.getTime() < timeout_s:
+            aoi = self._sample_aoi()
+            self._update_state(aoi)
+            self._draw()              # all drawing in one spot
+            self.exp.win.flip()
+
+    # ---------- gaze handling ----------
+    def _sample_aoi(self):
+        """Sample tracker, return AOI string."""
+        gaze = self.tracker.sample()
+        for aoi in AOI_NAMES[:4]:
+            if self.posAOIS[aoi].contains(gaze):      # <-- now points to alias
+             return aoi
+        return "away" if gaze == self.lookAwayPos else "none"
+
+    def _update_state(self, aoi):
+        if self.state == "IDLE":
+            self._idle_logic(aoi)
+        elif self.state == "PLAYING":
+            self._playing_logic(aoi)
+
+    # ----- IDLE → PLAYING -----
+    def _idle_logic(self, aoi):
+        if aoi in AOI_NAMES[:4]:
+            # start / continue fixation timer for this AOI
+            if self.cur_aoi != aoi:
+                self.fix_clock[aoi].reset()
+                self.cur_aoi = aoi
+            # if 300 ms reached → trigger
+            if self.fix_clock[aoi].getTime() * 1000 >= self.FIXATION_MS:
+                self._start_event(aoi)
+
+    # ----- PLAYING state -----
+    def _playing_logic(self, aoi):
+        played_ms = self.label_clock.getTime() * 1000
+
+        # conditions that *could* end the event
+        hit_max_time     = played_ms >= self.LABEL_MAX_MS
+        away_long_enough = (aoi in ["away", "none"] and
+                            self.fix_clock[aoi].getTime()*1000 >= self.LOOKAWAY_MS)
+        switched_object  = (aoi != self.cur_aoi and
+                            aoi in AOI_NAMES[:4] and
+                            self.fix_clock[aoi].getTime()*1000 >= self.FIXATION_MS)
+
+        # We may end ONLY if we've reached the MIN duration
+        can_end = played_ms >= self.LABEL_MIN_MS and (
+                    hit_max_time or away_long_enough or switched_object)
+
+        if can_end:
+            self._end_event()
+            if switched_object:          # immediate restart on new AOI
+                self._start_event(aoi)
+            return                       # done with this cycle
+
+        # -- still playing: handle looping after MIN met --
+        snd = self.assets[self.cur_aoi]['audio']
+        if played_ms >= self.LABEL_MIN_MS and not snd.isPlaying:
+            snd.stop()
+            snd.play()
+            self.label_clock.reset()
+
+    # ---------- start / end helpers ----------
+    def _start_event(self, aoi):
+        # pause & reset EVERY animation
+        for asset in self.assets.values():
+            asset['anim'].pause()
+            asset['anim'].reset_stimulus()
+
+        # start chosen anim + audio
+        anim = self.assets[aoi]['anim']
+        snd  = self.assets[aoi]['audio']
+
+        anim.resume()
+        # --- KICK‑START: do NOT flip here; just mark that the next _draw must update ---
+        self.first_frame = True             # add an attribute
+
+        snd.stop()
+        snd.play()
+        self.label_clock.reset()
+
+        self.state   = "PLAYING"
+        self.cur_aoi = aoi
+        if self.exp.subjVariables['eyetracker'] == "yes":
+			# log event
+            self.exp.tracker.log("startAudio")
+
+    def _end_event(self):
+        # stop anim/audio
+        self.assets[self.cur_aoi]['anim'].pause()
+        self.assets[self.cur_aoi]['audio'].stop()
+        self.assets[self.cur_aoi]['anim'].reset_stimulus()
+
+        if self.exp.subjVariables['eyetracker'] == "yes":
+			# log event
+            self.exp.tracker.log("endAudio")
+        self.state   = "IDLE"
+        self.cur_aoi = None
+        # make sure fixation timers restart fresh
+        for clk in self.fix_clock.values():
+            clk.reset()
+
+    # ---------- drawing ----------
+    def _draw(self):
+        # background rectangles
+        for asset in self.assets.values():
+            asset['rect'].draw()
+
+        # if an event is running, draw its animation frame
+        if self.state == "PLAYING":
+            self.assets[self.cur_aoi]['anim'].update()   # draws loom frame
+
+        # draw static images for *all* AOIs when IDLE,
+        # and for *non‑active* AOIs when PLAYING
+        for name, asset in self.assets.items():
+            if self.state != "PLAYING" or name != self.cur_aoi:
+                asset['stim'].draw()

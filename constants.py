@@ -6,10 +6,10 @@ print(LOGFILEPATH)
 LOGFILENAME = LOGFILEPATH #initialize file name
 LOGFILE = LOGFILENAME # .txt; adding path before logfilename is optional; logs responses (NOT eye movements, these are stored in an EDF file!)
 
-DUMMYMODE = True # False for gaze contingent display, True for dummy mode (using mouse or joystick)
+DUMMYMODE = False # False for gaze contingent display, True for dummy mode (using mouse or joystick)
 # general
-TRACKERTYPE = 'dummy' # either 'smi', 'eyelink' or 'dummy' (NB: if DUMMYMODE is True, trackertype will be set to dummy automatically)
-#TRACKERTYPE = 'tobii'
+#TRACKERTYPE = 'dummy' # either 'smi', 'eyelink' or 'dummy' (NB: if DUMMYMODE is True, trackertype will be set to dummy automatically)
+TRACKERTYPE = 'tobii'
 
 # DISPLAY
 # used in libscreen, for the *_display functions. The values may be adjusted,
