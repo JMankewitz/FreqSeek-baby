@@ -1,0 +1,2 @@
+timestamp,eyetrackerLog,sampledLook,avgPOS,curLook,response
+273770.7517000381,startContingent,,,,
