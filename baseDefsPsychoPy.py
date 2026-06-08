@@ -15,9 +15,11 @@ from psychopy import prefs
 # 	prefs.general['audioDriver']=[u'ASIO']
 # except:
 # 	print('could not load pyo')
-#import psychtoolbox as ptb
+import psychtoolbox as ptb
 
-prefs.hardware['audioLib'] = ['ptb', 'sounddevice']
+prefs.hardware['audioLib'] = ['ptb', 'pyo']
+prefs.hardware['audioDevice'] = 'Speakers (2- USB Audio Device)'
+prefs.hardware['audioLatencyMode'] = 1
 
 from psychopy import sound, core, visual
 

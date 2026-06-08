@@ -189,6 +189,14 @@ class ExpPresentation(Exp):
 		}
 		self.locations = ['bottomLeft', 'bottomRight', 'topLeft', 'topRight']
 
+		# Familiar objects: one randomly assigned per block (without replacement)
+		self.familiarObjects = [
+			{'image': 'apple', 'label': 'Label_apple'},
+			{'image': 'ball', 'label': 'Label_ball'},
+			{'image': 'shoe', 'label': 'Label_shoe'},
+			{'image': 'cookie', 'label': 'Label_cookie'},
+		]
+
 	def initializeExperiment(self):
 		
 		# Loading Files Screen
@@ -209,12 +217,13 @@ class ExpPresentation(Exp):
 		(self.lwlTestTrialsMatrix, self.lwlTrialFieldNames) = importTrials(lwlTrialPath, method="sequential")
 
 		self.initializeLowFreqLabeling()
+		self.initializeFamiliarObjectTrials()
 
 		self.movieMatrix = loadFilesMovie(self.experiment.moviePath, ['mp4', 'mov'], 'movie', self.experiment.win)
 		self.AGmovieMatrix = loadFilesMovie(self.experiment.AGPath, ['mp4'], 'movie', self.experiment.win)
 		self.soundMatrix = loadFiles(self.experiment.soundPath, ['.mp3', '.wav', '.aiff'], 'sound')
 		self.AGsoundMatrix = loadFiles(self.experiment.AGPath, ['.mp3', '.wav', '.aiff'], 'sound')
-		self.imageMatrix = loadFiles(self.experiment.imagePath, ['.png', ".jpg", ".jpeg"], 'image', win = self.experiment.win)
+		self.imageMatrix = loadFiles(self.experiment.imagePath, ['.png', '.PNG', ".jpg", ".jpeg"], 'image', win = self.experiment.win)
 		self.stars = loadFiles(self.experiment.AGPath, ['.jpg'], 'image', self.experiment.win)
 
 		
@@ -323,6 +332,46 @@ class ExpPresentation(Exp):
 			for obj, block in self.lowFreqLabelingBlocks.items():
 				f.write(f"{obj}: Block {block}\n")
 
+	def initializeFamiliarObjectTrials(self):
+		"""
+		Randomly assign one familiar object to each training block (without replacement),
+		and randomly choose its position within the block:
+		  0 = before the first HF trial
+		  1 = between the two HF trials
+		  2 = after the second HF trial
+		"""
+		objects = list(self.familiarObjects)
+		random.shuffle(objects)
+
+		positions = [random.randint(0, 2) for _ in range(4)]
+
+		# Alternate sides across blocks
+		sides = ['centerLeft', 'centerRight', 'centerLeft', 'centerRight']
+		random.shuffle(sides)
+
+		self.familiarTrialAssignments = {}
+		for block_num in range(1, 5):
+			self.familiarTrialAssignments[block_num] = {
+				'image': objects[block_num - 1]['image'],
+				'label': objects[block_num - 1]['label'],
+				'position': positions[block_num - 1],
+				'location': sides[block_num - 1],
+			}
+
+		# Log the randomization
+		print("Familiar object trial assignments:")
+		for block, info in self.familiarTrialAssignments.items():
+			pos_labels = {0: 'before HF trials', 1: 'between HF trials', 2: 'after HF trials'}
+			print(f"  Block {block}: {info['image']} at {info['location']}, {pos_labels[info['position']]}")
+
+		# Write to file for analysis
+		randomization_file = f'data/training/familiar_randomization_{self.experiment.subjVariables["subjCode"]}.txt'
+		with open(randomization_file, 'w') as f:
+			f.write("Familiar object trial assignments:\n")
+			for block, info in self.familiarTrialAssignments.items():
+				pos_labels = {0: 'before HF trials', 1: 'between HF trials', 2: 'after HF trials'}
+				f.write(f"Block {block}: {info['image']} at {info['location']}, {pos_labels[info['position']]}\n")
+
 	def getTrialLabel(self, curTrial):
 		"""
 		Determine what label to use for this trial based on frequency and randomization.
@@ -357,22 +406,74 @@ class ExpPresentation(Exp):
 		print(f"Key pressed: {key}")
 		self.experiment.disp.show()
 
+	def _makeFamiliarTrial(self, block_num):
+		"""Create a synthetic trial dict for a familiar object trial."""
+		info = self.familiarTrialAssignments[block_num]
+		return {
+			'trialType': 'training',
+			'trialCondition': 'familiar',
+			'trialID': f'fam_{block_num}',
+			'blockID': block_num,
+			'targetImage': info['image'],
+			'imageLocation': info['location'],
+			'imageName': info['image'],
+			'label': info['label'],
+			'trialDuration': '',
+			'trialStartSilence': '',
+			'trialEndSilence': '',
+			'AG': '', 'AGType': '', 'AGImage': '', 'AGAudio': '',
+			'AGVideo': '', 'AGTime': '', 'AGgetInput': '',
+			'AGWidth': '', 'AGHeight': '',
+		}
+
 	def cycleThroughTrials(self, whichPart):
 		curFamilTrialIndex = 1
 
 		if whichPart == "familiarizationPhase":
+			# Group trials by block so we can insert familiar trials
+			blocks = {}
+			other_trials = []  # AG trials not tied to a training block (e.g. final AG)
 			for curTrial in self.familTrialListMatrix.trialList:
-				#print(curTrial)
-				if curTrial['trialType'] == "training":
-					self.presentTrial(curTrial, curFamilTrialIndex, stage = "familiarization", getInput = "no")
+				block_id = curTrial.get('blockID')
+				if block_id and str(block_id).strip():
+					block_id = int(float(block_id))
+					if block_id not in blocks:
+						blocks[block_id] = {'ag': [], 'training': []}
+					if curTrial['trialType'] in ('AG', 'PauseAG'):
+						blocks[block_id]['ag'].append(curTrial)
+					elif curTrial['trialType'] == 'training':
+						blocks[block_id]['training'].append(curTrial)
+				else:
+					other_trials.append(curTrial)
 
+			for block_num in sorted(blocks.keys()):
+				block = blocks[block_num]
+
+				# Present AG trials for this block
+				for agTrial in block['ag']:
+					if agTrial['trialType'] == 'AG':
+						self.presentAGTrial(agTrial, self.trialFieldNames, getInput="no", duration=agTrial['AGTime'])
+					elif agTrial['trialType'] == 'PauseAG':
+						self.presentAGTrial(agTrial, self.trialFieldNames, getInput="yes", duration=0)
 					self.experiment.win.flip()
+					curFamilTrialIndex += 1
+
+				# Build training trial list with familiar trial inserted
+				training_trials = list(block['training'])
+				fam_trial = self._makeFamiliarTrial(block_num)
+				insert_pos = self.familiarTrialAssignments[block_num]['position']
+				training_trials.insert(insert_pos, fam_trial)
+
+				# Present all training trials (HF + familiar)
+				for curTrial in training_trials:
+					self.presentTrial(curTrial, curFamilTrialIndex, stage="familiarization", getInput="no")
+					self.experiment.win.flip()
+					curFamilTrialIndex += 1
+
+			# Present any remaining trials (e.g. final AG)
+			for curTrial in other_trials:
 				if curTrial['trialType'] == 'AG':
-					self.presentAGTrial(curTrial, self.trialFieldNames, getInput = "no", duration = curTrial['AGTime'])
-					#print("flip")
-					self.experiment.win.flip()
-				if curTrial['trialType'] == 'PauseAG':
-					self.presentAGTrial(curTrial, self.trialFieldNames ,getInput = "yes", duration = 0)
+					self.presentAGTrial(curTrial, self.trialFieldNames, getInput="no", duration=curTrial['AGTime'])
 					self.experiment.win.flip()
 				curFamilTrialIndex += 1
 
@@ -524,8 +625,6 @@ class ExpPresentation(Exp):
 		#grab correct movie, sound, and images
 		curSound = self.soundMatrix[labelToUse]
 
-		trial_duration = curTrial["trialDuration"] #ms
-
 		# set image sizes
 		imageName = curTrial['targetImage']
 		image = self.imageMatrix[imageName][0]
@@ -541,13 +640,28 @@ class ExpPresentation(Exp):
 						pos=self.pos[curTrial["imageLocation"]])
 		
 
-		# Draw initial images
+		# Draw static image for silent preview period (1000ms)
 		rect.draw()
-
 		image.draw()
-
 		self.experiment.win.flip()
 
+		trialTimerStart = libtime.get_time()
+
+		if self.experiment.subjVariables['eyetracker'] == "yes":
+			self.experiment.tracker.log("startScreen")
+
+		# 1000ms silent preview with static object
+		silentPreviewDuration = 1000  # ms
+		while (libtime.get_time() - trialTimerStart) < silentPreviewDuration:
+			rect.draw()
+			image.draw()
+			self.experiment.win.flip()
+
+			keys = event.getKeys()
+			if 'escape' in keys:
+				break
+
+		# Start animation + audio for 4000ms
 		imageAnimation = LoomAnimation(
 			stim=image,
 			win=self.experiment.win,
@@ -560,23 +674,17 @@ class ExpPresentation(Exp):
 			jiggle_frequency=self.jiggleFrequency,
 			looping= False
 		)
-		
-		trialTimerStart = libtime.get_time()
-		libtime.pause(self.startSilence)
 
 		curSound.play()
-		
+
 		if self.experiment.subjVariables['eyetracker'] == "yes":
-			# log event
-			self.experiment.tracker.log("startScreen")
+			self.experiment.tracker.log("audioOnset")
 
-		while (libtime.get_time() - trialTimerStart) < trial_duration:
-			elapsed_time = libtime.get_time() - trialTimerStart
-			
+		animationDuration = 4000  # ms
+		animationStart = libtime.get_time()
+		while (libtime.get_time() - animationStart) < animationDuration:
 			rect.draw()
-
 			imageAnimation.update()
-
 			self.experiment.win.flip()
 
 			keys = event.getKeys()
